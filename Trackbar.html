@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hello OpenCV.js</title>
+</head>
+<body>
+<h2>Hello OpenCV.js</h2>
+<div>
+
+    <div class="inputoutput">
+        <img id="canvasInput1"></img>
+        <div class="caption">Canvas 1
+            <input type="file" id="Input1" name="Canvas1">
+        </div>
+
+        <img id="canvasInput2"></img>
+        <div class="caption">Canvas 2
+            <input type="file" id="Input2" name="Canvas2">
+    </div>
+        <input type="range" id="trackbar" value="50" min="0" max="100" step="1" oninput="callback()">
+        <input type="text" id="weightValue" size="3" value="50"/>
+        <div class="inputoutput">
+            <canvas id="outputCanvas"></canvas>
+        </div>
+        </div>
+</div>
+<script type="text/javascript">
+
+    let canvas1 = document.getElementById("canvasInput1");
+    let canvas2 = document.getElementById("canvasInput2");
+
+    let input1 = document.getElementById("Input1");
+    let input2 = document.getElementById("Input2");
+
+    input1.addEventListener("change", (e) => {
+        canvas1.src = URL.createObjectURL(e.target.files[0]);
+    }, false);
+
+    input2.addEventListener("change", (e) => {
+        canvas2.src = URL.createObjectURL(e.target.files[0]);
+    }, false);
+
+
+
+
+    let x = document.createElement('INPUT');
+    x.setAttribute('type', 'range');
+
+    let weightValue = document.getElementById('weightValue');
+    let trackbar = document.getElementById('trackbar');
+
+
+    //ONLY FOR IMAGE WITH THE SAME SIZE
+    trackbar.oninput = function() {
+
+        console.log("HAAAA");
+    weightValue.setAttribute('value', trackbar.value);
+    let alpha = trackbar.value/trackbar.max;
+    let beta = (1.0 - alpha);
+
+     let src1 = cv.imread(canvas1);
+    let src2 = cv.imread(canvas2);
+
+    let dst = new cv.Mat();
+    cv.addWeighted( src1, alpha, src2, beta, 0.0, dst, -1);
+    cv.imshow('outputCanvas',dst);
+    dst.delete();
+    src1.delete();
+    src2.delete();
+
+    };
+
+
+
+
+
+
+    function onOpenCvReady() {
+        document.getElementById('status').innerHTML = 'OpenCV.js is ready';
+    }
+</script>
+<script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</body>
+</html>

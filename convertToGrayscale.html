@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hello OpenCV.js</title>
+</head>
+<body>
+<h2>Hello OpenCV.js</h2>
+<div>
+    <div class="inputoutput">
+        <img id="imageSrc" alt="No Image" />
+        <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+    </div>
+    <div class="inputoutput">
+        <canvas id="outputCanvas"></canvas>
+        <div class="caption">Output Canvas</div>
+    </div>
+    <div class="inputoutput">
+        <canvas id="myCanvas" width="578" height="400"> </canvas>
+        <div class="caption">Canvas</div>
+    </div>
+
+
+</div>
+<script type="text/javascript">
+    let imgElement = document.getElementById("imageSrc")
+    let inputElement = document.getElementById("fileInput");
+    inputElement.addEventListener("change", (e) => {
+        imgElement.src = URL.createObjectURL(e.target.files[0]);
+    }, false);
+
+    //HTML5 canvas image tutorial
+    let canvas = document.getElementById("myCanvas");
+    let context = canvas.getContext('2d');
+    let imageObj = new Image();
+    imageObj.onload = function(){
+        context.drawImage(imageObj, 0,0);
+    };
+    imageObj.src = 'https://www.html5canvastutorials.com/demos/assets/darth-vader.jpg';
+
+
+    imgElement.onload = function () {
+        let mat =cv.imread(imgElement);
+        let dst = new cv.Mat();
+        cv.cvtColor(mat, dst, cv.COLOR_RGBA2GRAY);
+        cv.imshow("outputCanvas", dst);
+        mat.delete();
+        dst.delete();
+    };
+
+
+
+
+
+
+
+
+
+    function onOpenCvReady() {
+        document.getElementById('status').innerHTML = 'OpenCV.js is ready';
+    }
+</script>
+<script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</body>
+</html>

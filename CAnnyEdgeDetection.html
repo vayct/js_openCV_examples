@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hello OpenCV.js</title>
+    <style type="text/css">
+        /* display loading gif and hide webpage */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: rgba(255, 255, 255, .8) url('http://i.stack.imgur.com/FhHRx.gif') 50% 50% no-repeat;
+        }
+
+        /* prevent scrollbar from display during load */
+        body.loading {
+            overflow: hidden;
+        }
+
+        /* display the modal when loading class is added to body */
+        body.loading .modal {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal"></div>
+
+<h2>Hello OpenCV.js</h2>
+
+<div>
+    <div class="inputoutput">
+        <img id="imageSrc" alt="No Image" />
+        <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+    </div>
+
+    <form>
+        Threshold1:<br>
+        <input type="number" id="t1"><br>
+        Threshold2:<br>
+        <input type="number" id="t2"><br>
+        ApertureSize:<br>
+        <input type="number" id="app"><br>
+
+
+
+    </form>
+
+    <P><button onClick="runCannyDetection()" type="button" id="clickMe">
+        Run Algorithm
+    </button></P>
+    <canvas id="outputCanvas"></canvas>
+</div>
+
+
+<script type="text/javascript">
+    document.body.classList.add("loading");
+
+    let imgElement = document.getElementById("imageSrc")
+    let inputElement = document.getElementById("fileInput");
+    inputElement.addEventListener("change", (e) => {
+        imgElement.src = URL.createObjectURL(e.target.files[0]);
+
+    }, false);
+
+    let p1 = document.getElementById("t1");
+    let p2 = document.getElementById("t2");
+    let appSize = document.getElementById("app");
+
+
+    function runCannyDetection(){
+        let src = cv.imread(imgElement);
+        let dst = new cv.Mat();
+        let x=parseFloat(p1.value);
+        let y=parseFloat(p2.value);
+        let z=parseFloat(appSize.value);
+
+
+        cv.cvtColor(src,src,cv.COLOR_RGB2GRAY,0);
+
+        cv.Canny(src,dst, x,y,z,false);
+        console.log(dst);
+        cv.imshow('outputCanvas', dst);
+        src.delete();
+        dst.delete();
+
+    }
+
+    function onOpenCvReady() {
+        document.body.classList.remove("loading");
+    }
+</script>
+<script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</body>
+</html>
