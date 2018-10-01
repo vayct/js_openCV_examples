@@ -61,7 +61,7 @@
 <script type="text/javascript">
     document.body.classList.add("loading");
 
-    let imgElement = document.getElementById("imageSrc")
+    let imgElement = document.getElementById("imageSrc");
     let inputElement = document.getElementById("fileInput");
     inputElement.addEventListener("change", (e) => {
         imgElement.src = URL.createObjectURL(e.target.files[0]);
@@ -80,6 +80,8 @@
         let y=parseFloat(p2.value);
         let z=parseFloat(appSize.value);
 
+        let a = 1;
+
 
         cv.cvtColor(src,src,cv.COLOR_RGB2GRAY,0);
 
@@ -97,4 +99,4 @@
 </script>
 <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
 </body>
-</html>
+< /html>;
