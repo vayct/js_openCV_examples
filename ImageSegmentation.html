@@ -60,16 +60,18 @@
     <form name="options">
 
         <br>
-        Dilation of object boundary to background (so region in the background is guarantee tobe the background):
+        Erosion Iteration: <span id="weightErosion">2</span>
+        <input type="range" id="trackbarErosion" value="2" min="0" max="10" step="1" oninput="callback()">
         <br>
-        <input type="range" id="trackbarDilation" value="3" min="0" max="6" step="1" oninput="callback()">
-        <input type="text" id="weightDilation" size="3" value="3"/>
-
 
         <br>
-        Foreground Minimum Threshold:
+        Dilation Iteration: <span id="weightDilation">2</span>
+        <input type="range" id="trackbarDilation" value="2" min="0" max="10" step="1" oninput="callback()">
+        <br>
+
+        <br>
+        Foreground Minimum Threshold: <span id="weightThreshold">1</span>
         <input type="range" id="trackbarThreshold" value="0.5" min="0" max="1" step="0.1" oninput="callback()">
-        <input type="text" id="weightValueTrackbar" size="3" value="0.5"/>
         <br>
 
 
@@ -83,17 +85,27 @@
     <div class="imgbox">
 
         <img class="center-fit" id="imageSrc" alt="No Image"/>
+
         <canvas class="center-fit" id="output"></canvas>
-        Threshhold Image<br>
+
+        Converting the image to grayscale and threshhold it with Otsu's binarization<br>
         <canvas class="center-fit" id="threshold"></canvas>
+
+        Eroding the foreground region:<br>
+        <canvas class="center-fit" id="erode"></canvas>
+
+        Dilating the threshold image so that the background region is reduced:<br>
+        <canvas class="center-fit" id="dilate"></canvas>
+
+
         Image Background<br>
         <canvas class="center-fit" id="background"></canvas>
-        Distance Transform<br>
+        Distance Transform and Normalize<br>
         <canvas class="center-fit" id="distanceTransform"></canvas>
         Foreground<br>
         <canvas class="center-fit" id="foreground"></canvas>
-        Markers<br>
-        <canvas class="center-fit" id="markers"></canvas>
+        White part are part of the foreground, black parts are unknown<br>
+        <canvas class="center-fit" id="unknown"></canvas>
         Watershed Image Segmentation<br>
         <canvas class="center-fit" id="watershed"></canvas>
 
@@ -115,16 +127,22 @@
     let x = document.createElement('INPUT');
     x.setAttribute('type', 'range');
 
-    let weightValueThreshold = document.getElementById('weightValueTrackbar');
+    let weightValueThreshold = document.getElementById('weightThreshold');
     let trackbarThreshold = document.getElementById('trackbarThreshold');
     trackbarThreshold.oninput = function () {
-        weightValueThreshold.setAttribute('value', trackbarThreshold.value);
+        weightValueThreshold.innerHTML = trackbarThreshold.value;
+    };
+
+    let weightValueErosion = document.getElementById('weightErosion');
+    let trackbarErosion = document.getElementById('trackbarErosion');
+    trackbarErosion.oninput = function () {
+        weightValueErosion.innerHTML = trackbarErosion.value;
     };
 
     let weightValueDilation = document.getElementById('weightDilation');
     let trackbarDilation = document.getElementById('trackbarDilation');
     trackbarDilation.oninput = function () {
-        weightValueDilation.setAttribute('value', trackbarDilation.value);
+        weightValueDilation.innerHTML = trackbarDilation.value;
     };
 
     function watershed() {
@@ -132,8 +150,8 @@
         let dst = new cv.Mat();
         let gray = new cv.Mat();
         let opening = new cv.Mat();
-        let coinsBg = new cv.Mat();
-        let coinsFg = new cv.Mat();
+        let background = new cv.Mat();
+        let foreground = new cv.Mat();
         let distTrans = new cv.Mat();
         let unknown = new cv.Mat();
         let markers = new cv.Mat();
@@ -145,12 +163,21 @@
         cv.imshow('threshold', gray);
 
 // get background
+        let eTrackbar = parseFloat(trackbarErosion.value);
+        let erosionIteration = cv.Mat.ones(eTrackbar, eTrackbar, cv.CV_8U);
+        cv.erode(gray, gray, erosionIteration);
+        cv.imshow('erode', gray);
+
+//dilate the gray image so that the background region is reduced
         let dTrackbar = parseFloat(trackbarDilation.value);
-        let M = cv.Mat.ones(dTrackbar, dTrackbar, cv.CV_8U);
-        cv.erode(gray, gray, M);
-        cv.dilate(gray, opening, M);
-        cv.dilate(opening, coinsBg, M, new cv.Point(-1, -1), dTrackbar);
-        cv.imshow('background', coinsBg);
+        let dilationIteration = cv.Mat.ones(dTrackbar, dTrackbar, cv.CV_8U);
+        cv.dilate(gray, opening, dilationIteration);
+        cv.imshow('dilate', opening);
+
+
+        cv.dilate(opening, background, dilationIteration, new cv.Point(-1, -1), dTrackbar);
+
+        cv.imshow('background', background);
 // distance transform
 
         cv.distanceTransform(opening, distTrans, cv.DIST_L2, 5);
@@ -158,14 +185,15 @@
         cv.imshow('distanceTransform', distTrans);
 // get foreground
         let y = parseFloat(trackbarThreshold.value);
-        cv.threshold(distTrans, coinsFg, y, 255, cv.THRESH_BINARY);
+        cv.threshold(distTrans, foreground, y, 255, cv.THRESH_BINARY);
 
-        cv.imshow('foreground', coinsFg);
+        cv.imshow('foreground', foreground);
 
-        coinsFg.convertTo(coinsFg, cv.CV_8U, 1, 0);
-        cv.subtract(coinsBg, coinsFg, unknown);
+        foreground.convertTo(foreground, cv.CV_8U, 1, 0);
+        cv.subtract(background, foreground, unknown);
+        cv.imshow('unknown', unknown);
 // get connected components markers
-        cv.connectedComponents(coinsFg, markers);
+        cv.connectedComponents(foreground, markers);
         for (let i = 0; i < markers.rows; i++) {
             for (let j = 0; j < markers.cols; j++) {
                 markers.intPtr(i, j)[0] = markers.ucharPtr(i, j)[0] + 1;
@@ -176,7 +204,6 @@
         }
         cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
         cv.watershed(src, markers);
-        cv.imshow('markers', markers);
 // draw barriers
         for (let i = 0; i < markers.rows; i++) {
             for (let j = 0; j < markers.cols; j++) {
@@ -192,12 +219,13 @@
         dst.delete();
         gray.delete();
         opening.delete();
-        coinsBg.delete();
-        coinsFg.delete();
+        background.delete();
+        foreground.delete();
         distTrans.delete();
         unknown.delete();
         markers.delete();
-        M.delete();
+        erosionIteration.delete();
+        dilationIteration.delete();
     }
 
     function onOpenCvReady() {
@@ -205,6 +233,7 @@
     }
 </script>
 <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+
 <
 /body>
 < /html>;
