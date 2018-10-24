@@ -1,0 +1,56 @@
+html,
+body {
+    margin: 0;
+    height: 100%;
+}
+
+.grid-container * {
+    border: 1px solid #ccc;
+}
+
+.grid-container div:after {
+    content: attr(class);
+    color: #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-family: arial;
+}
+
+.grid-container {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-gap: 1px 1px;
+    grid-template-areas: "options main main main" "options main main main" "eval history history history";
+}
+
+.options {
+    grid-area: options;
+    grid-gap: 1px 1px;
+}
+
+.eval {
+    grid-area: eval;
+    grid-gap: 1px 1px;
+}
+
+.history {
+    display: grid;
+    grid-area: history;
+    grid-template-columns: ;
+    grid-template-rows: ;
+    grid-gap: 1px 1px;
+    grid-template-areas: ".";
+}
+
+.main {
+    display: grid;
+    grid-area: main;
+    grid-template-columns: ;
+    grid-template-rows: ;
+    grid-gap: 1px 1px;
+    grid-template-areas: ".";
+}
