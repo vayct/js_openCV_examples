@@ -75,6 +75,7 @@
         <br>
 
 
+
     </form>
 
     <P>
@@ -82,6 +83,7 @@
             Run Algorithm
         </button>
     </P>
+    <h6 id="status"></h6>
     <div class="imgbox">
 
         <img class="center-fit" id="imageSrc" alt="No Image"/>
@@ -156,7 +158,31 @@
         let unknown = new cv.Mat();
         let markers = new cv.Mat();
 
+        src.convertTo(src, cv.CV_32F);
 
+
+        let sText = document.getElementById('status');
+        let matK = new cv.Mat(1, src.rows * src.cols, cv.CV_32F);
+        cv.cvtColor(matK, matK, cv.COLOR_GRAY2RGBA);
+
+
+        let i = 0;
+        for (let x = 0; x < src.rows; x++) {
+            for (let y = 0; y < src.cols; y++) {
+                matK.floatPtr(0, i)[0] = src.floatAt(x, y * src.channels());
+                matK.floatPtr(0, i)[1] = src.floatAt(x, y * src.channels() + 1);
+                matK.floatPtr(0, i)[2] = src.floatAt(x, y * src.channels() + 2);
+                matK.floatPtr(0, i)[3] = src.floatAt(x, y * src.channels() + 3);
+                i++;
+
+            }
+        }
+
+
+        let label = new cv.Mat();
+        let criteria = new cv.TermCriteria(0, 10, 1.0);
+        cv.kmeans(matK, 4, label, criteria, 5, cv.KMEANS_RANDOM_CENTERS, dst);
+        cv.imshow('output', matK);
 // gray and threshold image
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
         cv.threshold(gray, gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
@@ -228,9 +254,41 @@
         dilationIteration.delete();
     }
 
+    function getMat(src) {
+        let text = "";
+
+        for (let x = 0; x < src.rows; x++) {
+            for (let y = 0; y < src.cols; y++) {
+
+                text += '[' + src.floatAt(x, y * src.channels()) + ' ';
+                text += src.floatAt(x, y * src.channels() + 1) + ' ';
+                text += src.floatAt(x, y * src.channels() + 2) + ' ';
+                text += src.floatAt(x, y * src.channels() + 3) + ' ]';
+            }
+
+            text += '\n';
+        }
+        return text;
+    }
+
+    function getDescription(src) {
+        let text =
+            'image width: ' + src.cols + '\n' +
+            'image height: ' + src.rows + '\n' +
+            'image size: ' + src.size().width + '*' + src.size().height + '\n' +
+            'image depth: ' + src.depth() + '\n' +
+            'image channels ' + src.channels() + '\n' +
+            'image type: ' + src.type() + '\n' +
+            'image total: ' + src.total() + '\n' +
+            src + '\n';
+        return text;
+    }
+
     function onOpenCvReady() {
         document.body.classList.remove("loading");
     }
+
+
 </script>
 <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
 
