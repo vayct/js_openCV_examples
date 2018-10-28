@@ -165,6 +165,7 @@
         let matK = new cv.Mat(1, src.rows * src.cols, cv.CV_32F);
         cv.cvtColor(matK, matK, cv.COLOR_GRAY2RGBA);
 
+        sText.innerText = getDescription(matK);
 
         let i = 0;
         for (let x = 0; x < src.rows; x++) {
@@ -182,7 +183,26 @@
         let label = new cv.Mat();
         let criteria = new cv.TermCriteria(0, 10, 1.0);
         cv.kmeans(matK, 4, label, criteria, 5, cv.KMEANS_RANDOM_CENTERS, dst);
-        cv.imshow('output', matK);
+
+        let labelOutput = new cv.Mat(src.rows, src.cols, cv.CV_32S);
+
+
+        let v =0;
+        let zzz = "";
+        for (let x = 0; x < src.rows; x++) {
+            for (let y = 0; y < src.cols; y++) {
+                labelOutput.floatPtr(x,y)[0] = label.floatAt(v * label.channels(),0);
+                zzz += label.floatAt(v * label.channels(), 0) + '  ';
+                v++;
+
+
+            }
+        }
+        sText.innerText = zzz;
+
+
+
+        cv.imshow('output', labelOutput);
 // gray and threshold image
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
         cv.threshold(gray, gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
