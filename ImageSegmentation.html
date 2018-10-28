@@ -60,18 +60,18 @@
     <form name="options">
 
         <br>
-        Erosion Iteration: <span id="weightErosion">2</span>
-        <input type="range" id="trackbarErosion" value="2" min="0" max="10" step="1" oninput="callback()">
+        Erosion Iteration: <span id="weightErosion">1</span>
+        <input type="range" id="trackbarErosion" value="1" min="0" max="10" step="1" oninput="callback()">
         <br>
 
         <br>
-        Dilation Iteration: <span id="weightDilation">2</span>
-        <input type="range" id="trackbarDilation" value="2" min="0" max="10" step="1" oninput="callback()">
+        Dilation Iteration: <span id="weightDilation">1</span>
+        <input type="range" id="trackbarDilation" value="1" min="0" max="10" step="1" oninput="callback()">
         <br>
 
         <br>
-        Foreground Minimum Threshold: <span id="weightThreshold">1</span>
-        <input type="range" id="trackbarThreshold" value="0.5" min="0" max="1" step="0.1" oninput="callback()">
+        Foreground Minimum Threshold: <span id="weightThreshold">0.1</span>
+        <input type="range" id="trackbarThreshold" value="0.1" min="0" max="1" step="0.01" oninput="callback()">
         <br>
 
 
@@ -165,7 +165,7 @@
         let matK = new cv.Mat(1, src.rows * src.cols, cv.CV_32F);
         cv.cvtColor(matK, matK, cv.COLOR_GRAY2RGBA);
 
-        sText.innerText = getDescription(matK);
+        //sText.innerText = getDescription(matK);
 
         let i = 0;
         for (let x = 0; x < src.rows; x++) {
@@ -181,28 +181,39 @@
 
 
         let label = new cv.Mat();
-        let criteria = new cv.TermCriteria(0, 10, 1.0);
-        cv.kmeans(matK, 4, label, criteria, 5, cv.KMEANS_RANDOM_CENTERS, dst);
+        let criteria = new cv.TermCriteria(1, 10, 0.5);
+        let totalCluster = 3;
+        cv.kmeans(matK, totalCluster, label, criteria, 5, cv.KMEANS_RANDOM_CENTERS, dst);
 
-        let labelOutput = new cv.Mat(src.rows, src.cols, cv.CV_32S);
+        let labelOutput = new cv.Mat(src.rows, src.cols, cv.CV_8U);
+        cv.cvtColor(labelOutput,labelOutput, cv.COLOR_GRAY2RGB);
+        sText.innerText = getDescription(labelOutput);
 
+        let colors = [];
+        for(let i=0; i < totalCluster; i++) {
+            let colorR = Math.floor(Math.random() * 256);
+            let colorG = Math.floor(Math.random() * 256);
+            let colorB = Math.floor(Math.random() * 256);
+            colors.push(colorR);
+            colors.push(colorG);
+            colors.push(colorB);
+        }
 
         let v =0;
-        let zzz = "";
-        for (let x = 0; x < src.rows; x++) {
-            for (let y = 0; y < src.cols; y++) {
-                labelOutput.floatPtr(x,y)[0] = label.floatAt(v * label.channels(),0);
-                zzz += label.floatAt(v * label.channels(), 0) + '  ';
+        for (let x = 0; x < labelOutput.rows; x++) {
+            for (let y = 0; y < labelOutput.cols; y++) {
+                labelOutput.ucharPtr(x,y)[0] =    colors[label.intAt(v ,0) * 3];
+                labelOutput.ucharPtr(x,y)[1] =    colors[label.intAt(v ,0) * 3 + 1];
+                labelOutput.ucharPtr(x,y)[2] =    colors[label.intAt(v ,0) * 3 + 2];
+               // labelOutput.intPtr(x,y)[3] =     255;
                 v++;
-
-
             }
         }
-        sText.innerText = zzz;
 
 
 
         cv.imshow('output', labelOutput);
+        src = labelOutput;
 // gray and threshold image
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
         cv.threshold(gray, gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
@@ -248,19 +259,30 @@
                 }
             }
         }
-        cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
-        cv.watershed(src, markers);
+
+        let newSrc = cv.imread(imgElement);
+        cv.cvtColor(newSrc, newSrc, cv.COLOR_RGBA2RGB, 0);
+        cv.watershed(newSrc, markers);
 // draw barriers
         for (let i = 0; i < markers.rows; i++) {
             for (let j = 0; j < markers.cols; j++) {
-                if (markers.intPtr(i, j)[0] == -1) {
-                    src.ucharPtr(i, j)[0] = 0; // R
-                    src.ucharPtr(i, j)[1] = 255; // G
-                    src.ucharPtr(i, j)[2] = 0; // B
+
+                for(let w = 0; w < 5; w++) {
+                    if((i != 0 && j != 0) &&
+                       (i != markers.rows -1) &&
+                       (j != markers.cols - 1) &&
+                       (i + w < markers.rows) ){
+
+                    if (markers.intPtr(i, j)[0] == -1) {
+                        newSrc.ucharPtr(i+w, j)[0] = 0; // R
+                        newSrc.ucharPtr(i+w, j)[1] = 255; // G
+                        newSrc.ucharPtr(i+w, j)[2] = 255; // B
+                    }
+                    }
                 }
             }
         }
-        cv.imshow('watershed', src);
+        cv.imshow('watershed', newSrc);
         src.delete();
         dst.delete();
         gray.delete();
@@ -272,18 +294,43 @@
         markers.delete();
         erosionIteration.delete();
         dilationIteration.delete();
+        labelOutput.delete();
+        newSrc.delete();
+        matK.deleter();
     }
 
     function getMat(src) {
+        /*
+
+
++--------+----+----+----+----+------+------+------+------+
+|       | C1 | C2 | C3 | C4 | C(5) | C(6) | C(7) | C(8) |
++--------+----+----+----+----+------+------+------+------+
+| CV_8U  |  0 |  8 | 16 | 24 |   32 |   40 |   48 |   56 |
+| CV_8S  |  1 |  9 | 17 | 25 |   33 |   41 |   49 |   57 |
+| CV_16U |  2 | 10 | 18 | 26 |   34 |   42 |   50 |   58 |
+| CV_16S |  3 | 11 | 19 | 27 |   35 |   43 |   51 |   59 |
+| CV_32S |  4 | 12 | 20 | 28 |   36 |   44 |   52 |   60 |
+| CV_32F |  5 | 13 | 21 | 29 |   37 |   45 |   53 |   61 |
+| CV_64F |  6 | 14 | 22 | 30 |   38 |   46 |   54 |   62 |
++--------+----+----+----+----+------+------+------+------+
+         */
         let text = "";
+        let ch = src.channels();
 
         for (let x = 0; x < src.rows; x++) {
             for (let y = 0; y < src.cols; y++) {
 
-                text += '[' + src.floatAt(x, y * src.channels()) + ' ';
-                text += src.floatAt(x, y * src.channels() + 1) + ' ';
-                text += src.floatAt(x, y * src.channels() + 2) + ' ';
-                text += src.floatAt(x, y * src.channels() + 3) + ' ]';
+                text += '[';
+                for( let c=0; c < ch;c++){
+                    text += src.intAt(x,y * ch + c) +' ';
+                }
+                text += ']';
+
+                //text += '[' + src.floatAt(x, y * src.channels()) + ' ';
+                //text += src.floatAt(x, y * src.channels() + 1) + ' ';
+               // text += src.floatAt(x, y * src.channels() + 2) + ' ';
+               // text += src.floatAt(x, y * src.channels() + 3) + ' ]';
             }
 
             text += '\n';
